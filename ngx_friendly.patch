@@ -1,0 +1,185 @@
+--- src/http/ngx_http_special_response.c	2017-10-26 13:42:53.000000000 +0800
++++ src/http/ngx_http_special_response.c.9999	2018-05-05 17:16:23.675967427 +0800
+@@ -18,6 +18,39 @@
+ static ngx_int_t ngx_http_send_refresh(ngx_http_request_t *r);
+
+
++static u_char ngx_http_server_info_head[] =
++" Sorry for the inconvenience.<br/>" CRLF
++"Please report this message and include the following information to us.<br/>"
++CRLF
++"Thank you very much!</p>" CRLF
++;
++
++static u_char ngx_http_server_info_foot[] =
++CRLF "<hr> Authorized Access Only. &#x2623; "  CRLF
++;
++static u_char ngx_http_server_info_time[] =
++CRLF "<br> time:  "
++;
++
++static u_char ngx_http_server_info_server[] =
++CRLF "<br> server:  "
++;
++
++static u_char ngx_http_server_info_client[] =
++CRLF "<br> client:  "
++;
++
++static u_char ngx_http_server_info_uri[] =
++CRLF "<br> uri:  "
++;
++
++
++static u_char ngx_http_server_info_agent[] =
++CRLF "<br> agent:  "
++;
++
++
++
+ static u_char ngx_http_error_full_tail[] =
+ "<hr><center>" NGINX_VER "</center>" CRLF
+ "</body>" CRLF
+@@ -46,6 +79,11 @@
+ "<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
+ "<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
+ "<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
++"<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
++"<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
++"<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
++"<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
++"<!-- a padding to disable MSIE and Chrome friendly error page -->" CRLF
+ ;
+
+
+@@ -682,6 +720,69 @@
+         tail = ngx_http_error_tail;
+     }
+
++
++///////////////////////////////
++// begin build full request uri
++    uintptr_t                  euri, ehost;
++    ngx_str_t                 *host, scheme, port;
++    ngx_uint_t                 p;
++    struct sockaddr_in        *sin;
++#if (NGX_HAVE_INET6)
++    struct sockaddr_in6       *sin6;
++#endif
++    ngx_http_core_srv_conf_t  *cscf;
++
++    cscf = ngx_http_get_module_srv_conf(r, ngx_http_core_module);
++
++    ngx_str_null(&scheme);
++
++#if (NGX_HTTP_SSL)
++
++    if (r->connection->ssl) {
++        ngx_str_set(&scheme, "https://");
++    }
++
++#endif
++
++    if (scheme.len == 0) {
++        ngx_str_set(&scheme, "http://");
++    }
++
++    if (r->headers_in.server.len) {
++        host = &r->headers_in.server;
++
++    } else {
++        host = &cscf->server_name;
++    }
++
++    ngx_str_null(&port);
++
++    switch (r->connection->local_sockaddr->sa_family) {
++
++#if (NGX_HAVE_INET6)
++    case AF_INET6:
++        sin6 = (struct sockaddr_in6 *) r->connection->local_sockaddr;
++        p = ntohs(sin6->sin6_port);
++        break;
++#endif
++
++    default:
++        sin = (struct sockaddr_in *) r->connection->local_sockaddr;
++        p = ntohs(sin->sin_port);
++        break;
++    }
++
++    if (p > 0 && p < 65536 && p != 80 && p != 443) {
++        port.data = ngx_pnalloc(r->pool, sizeof(":65535") - 1);
++        port.len = ngx_sprintf(port.data, ":%ui", p) - port.data;
++    }
++
++    ehost = ngx_escape_html(NULL, host->data, host->len);
++    euri = ngx_escape_html(NULL, r->unparsed_uri.data, r->unparsed_uri.len);
++
++// end  build full request uri
++///////////////////////////////
++
+     msie_padding = 0;
+
+     if (ngx_http_error_pages[err].len) {
+@@ -709,6 +810,11 @@
+         r->headers_out.content_length = NULL;
+     }
+
++// begin fixpadding
++         r->headers_out.content_length_n = ngx_http_error_pages[err].len + len + sizeof(ngx_http_msie_padding) - 1;
++         msie_padding = 1;
++// end fixpadding
++
+     ngx_http_clear_accept_ranges(r);
+     ngx_http_clear_last_modified(r);
+     ngx_http_clear_etag(r);
+@@ -732,6 +838,49 @@
+     b->pos = ngx_http_error_pages[err].data;
+     b->last = ngx_http_error_pages[err].data + ngx_http_error_pages[err].len;
+
++
++////////////////////
++// begin custom page
++
++    len = sizeof(ngx_http_server_info_foot) - 1;
++    tail = ngx_http_server_info_foot ;
++
++    b->last = ngx_cpymem(b->last, ngx_http_server_info_head, sizeof(ngx_http_server_info_head) - 1);
++    b->last = ngx_cpymem(b->last, ngx_http_server_info_uri, sizeof(ngx_http_server_info_uri) - 1);
++    b->last = ngx_cpymem(b->last, scheme.data, scheme.len);
++
++    if (ehost == 0) {
++        b->last = ngx_cpymem(b->last, host->data, host->len);
++
++    } else {
++        b->last = (u_char *) ngx_escape_html(b->last, host->data, host->len);
++    }
++
++    if (port.len) {
++        b->last = ngx_cpymem(b->last, port.data, port.len);
++    }
++
++    if (euri == 0) {
++        b->last = ngx_cpymem(b->last, r->unparsed_uri.data, r->unparsed_uri.len);
++
++    } else {
++        b->last = (u_char *) ngx_escape_html(b->last, r->unparsed_uri.data, r->unparsed_uri.len);
++    }
++
++
++    b->last = ngx_cpymem(b->last, ngx_http_server_info_server, sizeof(ngx_http_server_info_server) - 1);
++    b->last = ngx_cpymem(b->last, ngx_cycle->hostname.data, ngx_cycle->hostname.len);
++    b->last = ngx_cpymem(b->last, ngx_http_server_info_time, sizeof(ngx_http_server_info_time) - 1);
++    b->last = ngx_cpymem(b->last, ngx_cached_http_log_iso8601.data, ngx_cached_http_log_iso8601.len);
++    b->last = ngx_cpymem(b->last, ngx_http_server_info_client, sizeof(ngx_http_server_info_client) - 1);
++    b->last = ngx_cpymem(b->last, r->connection->addr_text.data, r->connection->addr_text.len);
++    b->last = ngx_cpymem(b->last, ngx_http_server_info_agent, sizeof(ngx_http_server_info_agent) - 1);
++    b->last = ngx_cpymem(b->last, r->headers_in.user_agent->value.data, r->headers_in.user_agent->value.len);
++
++// end custom page
++//////////////////
++
++
+     out[0].buf = b;
+     out[0].next = &out[1];
