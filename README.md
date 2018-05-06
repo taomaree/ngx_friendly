@@ -1,6 +1,8 @@
 # ngx_friendly
 nginx friendly error page.
 
+![nginx friendly error page.](./ngx_friendly.png)
+
 ## Compatibility
 * Nginx
   * 1.14.x (last tested: 1.14.0)
@@ -8,7 +10,7 @@ nginx friendly error page.
 
 Earlier versions is not tested.
 
-## how to use
+## How to use
 ```
 cd nginx-1.13.6
 patch -p0 < ngx_friendly.patch
@@ -16,3 +18,12 @@ patch -p0 < ngx_friendly.patch
 make 
 sudo make install
 ```
+
+## Contribute
+Any help would be appreciated! Especially someone could turn this patch into an nginx module.
+
+## License
+ngx_friendly is [BSD licensed](./LICENSE).
+
+## Credits
+This project inspired by and forked from [Tengine](https://github.com/alibaba/tengine/blob/master/src/http/ngx_http_special_response.c).
