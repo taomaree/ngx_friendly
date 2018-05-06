@@ -13,6 +13,7 @@ Earlier versions is not tested.
 ## How to use
 ```
 cd nginx-1.13.6
+wget -c https://raw.githubusercontent.com/taomaree/ngx_friendly/master/ngx_friendly.patch
 patch -p0 < ngx_friendly.patch
 ./configure
 make 
