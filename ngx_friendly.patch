@@ -22,8 +22,8 @@
 +CRLF "<br> server:  "
 +;
 +
-+static u_char ngx_http_server_info_client[] =
-+CRLF "<br> client:  "
++//static u_char ngx_http_server_info_client[] =
++//CRLF "<br> client:  "
 +;
 +
 +static u_char ngx_http_server_info_uri[] =
@@ -172,8 +172,8 @@
 +    b->last = ngx_cpymem(b->last, ngx_cycle->hostname.data, ngx_cycle->hostname.len);
 +    b->last = ngx_cpymem(b->last, ngx_http_server_info_time, sizeof(ngx_http_server_info_time) - 1);
 +    b->last = ngx_cpymem(b->last, ngx_cached_http_log_iso8601.data, ngx_cached_http_log_iso8601.len);
-+    b->last = ngx_cpymem(b->last, ngx_http_server_info_client, sizeof(ngx_http_server_info_client) - 1);
-+    b->last = ngx_cpymem(b->last, r->connection->addr_text.data, r->connection->addr_text.len);
++    //b->last = ngx_cpymem(b->last, ngx_http_server_info_client, sizeof(ngx_http_server_info_client) - 1);
++    //b->last = ngx_cpymem(b->last, r->connection->addr_text.data, r->connection->addr_text.len);
 +    b->last = ngx_cpymem(b->last, ngx_http_server_info_agent, sizeof(ngx_http_server_info_agent) - 1);
 +    b->last = ngx_cpymem(b->last, r->headers_in.user_agent->value.data, r->headers_in.user_agent->value.len);
 +
