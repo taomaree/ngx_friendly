@@ -11,7 +11,7 @@ nginx friendly error page.
 * Openresty
   * 1.13.x (last tested: 1.13.6.1)
 
-Earlier versions is not tested.
+Earlier versions are not tested.
 
 ## How to use
 ```
